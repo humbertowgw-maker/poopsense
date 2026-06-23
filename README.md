@@ -7,6 +7,11 @@ illness and should not replace veterinary examination, fecal testing, treatment,
 or emergency care. The web app requires users to acknowledge this notice before
 requesting an analysis.
 
+The app also includes a location-based veterinary finder with public listing
+hours and phone data, a 24-hour emergency-care priority, direct calling, and
+Google Maps navigation. Location is requested only when the user starts a search
+and is not stored by PoopSense.
+
 **Live Demo:** https://web-production-fb2d1.up.railway.app
 
 ## Tech Stack

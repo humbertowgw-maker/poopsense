@@ -3,6 +3,7 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PoopSense</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f4f6f5; min-height: 100vh; padding: 24px; color: #17211d; }
@@ -36,16 +37,38 @@
     .rec-box { background: #e8f8f2; border-radius: 10px; padding: 16px; font-size: 14px; color: #0F6E56; line-height: 1.7; margin-top: 8px; }
     .result-disclaimer { border-top: 1px solid #e4e9e6; margin-top: 24px; padding-top: 16px; color: #68736d; font-size: 12px; line-height: 1.5; }
     .emergency-note { color: #8d1919; font-weight: 650; }
+    .brand-paws { color: #1D9E75; font-size: 22px; letter-spacing: 4px; margin-bottom: 6px; }
+    .vet-finder { max-width: 760px; margin: 24px auto 0; background: white; padding: 28px; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,0.07); }
+    .vet-finder h2 { font-size: 21px; margin-bottom: 6px; }
+    .vet-finder > p { color: #68736d; font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+    #vetMap { display: none; height: 340px; width: 100%; margin: 18px 0; border: 1px solid #dce3df; }
+    #vetStatus { margin-top: 12px; color: #68736d; font-size: 13px; line-height: 1.5; }
+    .clinic-list { display: grid; gap: 12px; }
+    .clinic { border: 1px solid #dce3df; padding: 16px; border-radius: 6px; }
+    .clinic.emergency-clinic { border-color: #d44343; background: #fffafa; }
+    .clinic-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .clinic h3 { font-size: 16px; }
+    .clinic-distance { color: #68736d; font-size: 12px; white-space: nowrap; }
+    .clinic-meta { color: #53605a; font-size: 13px; line-height: 1.55; }
+    .clinic-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .clinic-actions a { flex: 1; padding: 10px 12px; border: 1px solid #1D9E75; color: #0F6E56; text-align: center; text-decoration: none; font-size: 13px; font-weight: 650; border-radius: 5px; }
+    .clinic-actions .call { background: #1D9E75; color: white; }
+    .emergency-search { display: none; margin-top: 14px; padding: 14px; background: #fff0f0; border-left: 4px solid #c52929; font-size: 13px; line-height: 1.5; }
+    .emergency-search a { color: #9b1717; font-weight: 700; }
     @media (max-width: 600px) {
       body { padding: 12px; }
       .card { padding: 24px 18px; }
       .row { align-items: flex-start; gap: 16px; }
       .value { max-width: 58%; }
+      .vet-finder { padding: 22px 18px; }
+      #vetMap { height: 280px; }
+      .clinic-actions { flex-direction: column; }
     }
   </style>
 </head>
 <body>
   <div class="card">
+    <div class="brand-paws" aria-hidden="true">🐾 🐾</div>
     <h1>PoopSense</h1>
     <p class="subtitle">AI-assisted visual stool screening for pet owners</p>
 
@@ -78,13 +101,21 @@
       <div class="row"><span class="label">Color</span><span class="value" id="color"></span></div>
       <div class="row"><span class="label">Consistency</span><span class="value" id="consistency"></span></div>
       <div class="row"><span class="label">Stool Score</span><span class="value" id="stool_score"></span></div>
+      <div class="row"><span class="label">Score Confidence</span><span class="value" id="score_confidence"></span></div>
       <div class="row"><span class="label">Shape and Texture</span><span class="value" id="shape"></span></div>
+      <div class="row"><span class="label">Segmentation</span><span class="value" id="segmentation"></span></div>
+      <div class="row"><span class="label">Surface Texture</span><span class="value" id="surface_texture"></span></div>
+      <div class="row"><span class="label">Surface Moisture</span><span class="value" id="moisture"></span></div>
+      <div class="row"><span class="label">Color Uniformity</span><span class="value" id="color_uniformity"></span></div>
+      <div class="row"><span class="label">Estimated Amount</span><span class="value" id="estimated_amount"></span></div>
       <div class="row"><span class="label">Visible Blood</span><span class="value" id="blood"></span></div>
       <div class="row"><span class="label">Visible Mucus</span><span class="value" id="mucus"></span></div>
       <div class="row"><span class="label">Coating or Grease</span><span class="value" id="coating"></span></div>
       <div class="row"><span class="label">Parasite-like Material</span><span class="value" id="parasites"></span></div>
       <div class="row"><span class="label">Foreign Material</span><span class="value" id="foreign"></span></div>
       <div class="row"><span class="label">Undigested Material</span><span class="value" id="undigested"></span></div>
+      <div class="row"><span class="label">Hair or Plant Material</span><span class="value" id="hair_plant"></span></div>
+      <div class="row"><span class="label">Photo Surroundings</span><span class="value" id="surroundings"></span></div>
 
       <div class="section-title">Recommendation</div>
       <div class="rec-box" id="recommendation"></div>
@@ -111,6 +142,18 @@
     </div>
   </div>
 
+  <section class="vet-finder" aria-labelledby="vetFinderTitle">
+    <div class="brand-paws" aria-hidden="true">🐾</div>
+    <h2 id="vetFinderTitle">Find veterinary care nearby</h2>
+    <p>Your location is used only for this search and is not stored. Listings, hours, phone numbers, and ratings can change. Open Maps for current reviews and always call to confirm emergency availability.</p>
+    <button id="findVetsButton" onclick="findVets()">Use My Location</button>
+    <div id="vetStatus" role="status"></div>
+    <div id="vetMap"></div>
+    <div id="emergencySearch" class="emergency-search"></div>
+    <div id="clinicList" class="clinic-list"></div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const disclosureVersion = "{{ disclosure_version }}";
     const consent = document.getElementById("consent");
@@ -167,13 +210,21 @@
         document.getElementById("consistency").textContent = data.consistency || "Unclear";
         document.getElementById("stool_score").textContent =
           data.stool_score ? `${data.stool_score} of 7` : "Unable to score";
+        document.getElementById("score_confidence").textContent = data.stool_score_confidence || "Unclear";
         document.getElementById("shape").textContent = data.shape_and_texture || "Unclear";
+        document.getElementById("segmentation").textContent = data.segmentation || "Unclear";
+        document.getElementById("surface_texture").textContent = data.surface_texture || "Unclear";
+        document.getElementById("moisture").textContent = data.moisture_appearance || "Unclear";
+        document.getElementById("color_uniformity").textContent = data.color_uniformity || "Unclear";
+        document.getElementById("estimated_amount").textContent = data.estimated_amount || "Unclear";
         document.getElementById("blood").textContent = data.blood_visible || "Unclear";
         document.getElementById("mucus").textContent = data.mucus_visible || "Unclear";
         document.getElementById("coating").textContent = data.coating_or_grease || "Unclear";
         document.getElementById("parasites").textContent = data.parasite_like_material || "Unclear";
         document.getElementById("foreign").textContent = data.foreign_material || "Unclear";
         document.getElementById("undigested").textContent = data.undigested_material || "Unclear";
+        document.getElementById("hair_plant").textContent = data.hair_or_plant_material || "Unclear";
+        document.getElementById("surroundings").textContent = data.surrounding_contamination || "None noted";
         document.getElementById("recommendation").textContent = data.recommendation || "Contact your veterinarian if you are concerned.";
         document.getElementById("urgency_reasons").innerHTML = list(data.urgency_reasons);
         document.getElementById("findings").innerHTML = list(data.visible_findings);
@@ -190,6 +241,118 @@
         document.getElementById("loading").style.display = "none";
         analyzeButton.disabled = !consent.checked;
       }
+    }
+
+    let vetMap;
+    let vetMarkers;
+
+    function findVets() {
+      const status = document.getElementById("vetStatus");
+      if (!navigator.geolocation) {
+        status.textContent = "Location services are not supported on this device.";
+        return;
+      }
+      status.textContent = "Requesting your location...";
+      document.getElementById("findVetsButton").disabled = true;
+      navigator.geolocation.getCurrentPosition(
+        position => loadVets(position.coords.latitude, position.coords.longitude),
+        () => {
+          status.textContent = "Location access was not available. Enable location permission and try again.";
+          document.getElementById("findVetsButton").disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 }
+      );
+    }
+
+    async function loadVets(latitude, longitude) {
+      const status = document.getElementById("vetStatus");
+      try {
+        status.textContent = "Finding nearby veterinary clinics...";
+        const response = await fetch(`/vets?lat=${encodeURIComponent(latitude)}&lng=${encodeURIComponent(longitude)}`);
+        const data = await response.json();
+        if (!response.ok) {
+          if (data.emergency_search_url) renderEmergencyFallback(data.emergency_search_url);
+          throw new Error(data.error || "Clinic search failed.");
+        }
+        renderVetMap(latitude, longitude, data.clinics || []);
+        renderClinics(data);
+        status.textContent = data.source_note || "";
+      } catch (error) {
+        status.textContent = error.message || "Clinic search is temporarily unavailable.";
+      } finally {
+        document.getElementById("findVetsButton").disabled = false;
+      }
+    }
+
+    function renderEmergencyFallback(url) {
+      const emergencyBox = document.getElementById("emergencySearch");
+      emergencyBox.style.display = "block";
+      emergencyBox.innerHTML = `<strong>Need emergency care?</strong> <a href="${url}" target="_blank" rel="noreferrer">Open a live 24-hour emergency vet search</a> and call before leaving.`;
+    }
+
+    function renderVetMap(latitude, longitude, clinics) {
+      const mapElement = document.getElementById("vetMap");
+      mapElement.style.display = "block";
+      if (!vetMap) {
+        vetMap = L.map("vetMap").setView([latitude, longitude], 11);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors"
+        }).addTo(vetMap);
+        vetMarkers = L.layerGroup().addTo(vetMap);
+      } else {
+        vetMap.setView([latitude, longitude], 11);
+        vetMarkers.clearLayers();
+      }
+      L.circleMarker([latitude, longitude], { radius: 7, color: "#1D9E75", fillOpacity: 1 })
+        .bindPopup("Your approximate location")
+        .addTo(vetMarkers);
+      clinics.forEach(clinic => {
+        L.marker([clinic.latitude, clinic.longitude])
+          .bindPopup(`<strong>${escapeHtml(clinic.name)}</strong><br>${escapeHtml(clinic.hours)}`)
+          .addTo(vetMarkers);
+      });
+      setTimeout(() => vetMap.invalidateSize(), 0);
+    }
+
+    function renderClinics(data) {
+      const clinics = data.clinics || [];
+      const listElement = document.getElementById("clinicList");
+      const emergency = clinics.find(clinic => clinic.is_24_hour);
+      listElement.innerHTML = clinics.length
+        ? clinics.map(clinicCard).join("")
+        : "<div class='notes-box'>No public clinic listings were found nearby. Use the emergency search below.</div>";
+
+      const emergencyBox = document.getElementById("emergencySearch");
+      emergencyBox.style.display = "block";
+      emergencyBox.innerHTML = emergency
+        ? `<strong>24-hour listing found:</strong> ${escapeHtml(emergency.name)}. Call before traveling to confirm current emergency capacity.`
+        : `<strong>Need emergency care?</strong> No nearby listing was clearly marked 24/7. <a href="${data.emergency_search_url}" target="_blank" rel="noreferrer">Open a live 24-hour emergency vet search</a> and call before leaving.`;
+    }
+
+    function clinicCard(clinic) {
+      const phoneLink = clinic.phone
+        ? `<a class="call" href="tel:${escapeHtml(clinic.phone.replace(/[^+0-9]/g, ""))}">Call</a>`
+        : `<a href="${clinic.maps_url}" target="_blank" rel="noreferrer">Phone in Maps</a>`;
+      const emergencyLabel = clinic.is_24_hour
+        ? "24 hours"
+        : clinic.is_emergency ? "Emergency listing" : "";
+      return `
+        <article class="clinic ${clinic.is_emergency ? "emergency-clinic" : ""}">
+          <div class="clinic-top">
+            <h3>${escapeHtml(clinic.name)} ${emergencyLabel ? `· ${escapeHtml(emergencyLabel)}` : ""}</h3>
+            <span class="clinic-distance">${clinic.distance_miles} mi</span>
+          </div>
+          <div class="clinic-meta">
+            ${escapeHtml(clinic.address)}<br>
+            Hours: ${escapeHtml(clinic.hours)}<br>
+            Ratings: <a href="${clinic.maps_url}" target="_blank" rel="noreferrer">view current listing</a>
+          </div>
+          <div class="clinic-actions">
+            ${phoneLink}
+            <a href="${clinic.navigate_url}" target="_blank" rel="noreferrer">Navigate</a>
+            <a href="${clinic.maps_url}" target="_blank" rel="noreferrer">Open Maps</a>
+          </div>
+        </article>`;
     }
   </script>
 </body>
