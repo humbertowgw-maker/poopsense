@@ -3,23 +3,38 @@
 <head>
   <title>PoopSense 🐾</title>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; }
-    h1 { font-size: 32px; margin-bottom: 8px; }
-    p { color: #666; margin-bottom: 24px; }
-    input { margin-bottom: 16px; display: block; }
-    button { padding: 10px 24px; background: #1D9E75; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, sans-serif; background: #f9f9f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: white; border-radius: 16px; padding: 40px; max-width: 620px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .subtitle { color: #888; margin-bottom: 28px; font-size: 15px; }
+    input[type="file"] { display: block; margin-bottom: 16px; font-size: 14px; }
+    button { padding: 12px 28px; background: #1D9E75; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; width: 100%; }
     button:hover { background: #0F6E56; }
-    pre { background: #f4f4f4; padding: 20px; border-radius: 8px; margin-top: 24px; white-space: pre-wrap; }
-    #loading { display: none; color: #666; margin-top: 16px; }
+    #loading { display: none; text-align: center; color: #888; margin-top: 20px; font-size: 14px; }
+    .result-box { margin-top: 24px; background: #1a1a2e; border-radius: 10px; padding: 20px; display: none; }
+    .result-box pre { color: #a8ff78; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+    .result-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .urgency-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+    .normal { background: #d4f5e9; color: #0F6E56; }
+    .monitor { background: #fff3cd; color: #856404; }
+    .vet_soon { background: #ffe5cc; color: #cc5500; }
+    .emergency { background: #ffd5d5; color: #cc0000; }
   </style>
 </head>
 <body>
-  <h1>PoopSense 🐾</h1>
-  <p>Upload a photo for an AI-powered vet assessment</p>
-  <input type="file" id="photo" accept="image/*">
-  <button onclick="analyze()">Analyze</button>
-  <div id="loading">Analyzing... please wait ⏳</div>
-  <pre id="result"></pre>
+  <div class="card">
+    <h1>PoopSense 🐾</h1>
+    <p class="subtitle">AI-powered veterinary fecal assessment</p>
+    <input type="file" id="photo" accept="image/*">
+    <button onclick="analyze()">Analyze Sample</button>
+    <div id="loading">🔬 Analyzing... please wait</div>
+    <div class="result-box" id="result-box">
+      <div class="result-label">Vet Assessment</div>
+      <div id="badge"></div>
+      <pre id="result"></pre>
+    </div>
+  </div>
 
   <script>
     async function analyze() {
@@ -27,7 +42,7 @@
       if (!file) { alert("Please select a photo first"); return; }
       
       document.getElementById("loading").style.display = "block";
-      document.getElementById("result").textContent = "";
+      document.getElementById("result-box").style.display = "none";
       
       const form = new FormData();
       form.append("photo", file);
@@ -36,6 +51,10 @@
       const data = await res.json();
       
       document.getElementById("loading").style.display = "none";
+      document.getElementById("result-box").style.display = "block";
+      
+      const urgency = data.urgency || "unknown";
+      document.getElementById("badge").innerHTML = `<span class="urgency-badge ${urgency}">${urgency.toUpperCase()}</span>`;
       document.getElementById("result").textContent = JSON.stringify(data, null, 2);
     }
   </script>
