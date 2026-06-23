@@ -1,2 +1,5 @@
 venv/
 .env
+*.jpeg
+*.jpg
+temp_upload.jpg
