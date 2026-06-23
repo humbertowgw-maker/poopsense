@@ -12,14 +12,21 @@
     button { padding: 12px 28px; background: #1D9E75; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; width: 100%; }
     button:hover { background: #0F6E56; }
     #loading { display: none; text-align: center; color: #888; margin-top: 20px; font-size: 14px; }
-    .result-box { margin-top: 24px; background: #1a1a2e; border-radius: 10px; padding: 20px; display: none; }
-    .result-box pre { color: #a8ff78; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
-    .result-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .urgency-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+    .report { margin-top: 28px; display: none; }
+    .badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 20px; }
     .normal { background: #d4f5e9; color: #0F6E56; }
     .monitor { background: #fff3cd; color: #856404; }
     .vet_soon { background: #ffe5cc; color: #cc5500; }
     .emergency { background: #ffd5d5; color: #cc0000; }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+    .row:last-of-type { border-bottom: none; }
+    .label { font-size: 14px; color: #888; }
+    .value { font-size: 14px; font-weight: 500; color: #1a1a1a; text-align: right; max-width: 60%; }
+    .flag-yes { color: #cc0000; }
+    .flag-no { color: #0F6E56; }
+    .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin: 20px 0 10px; }
+    .notes-box { background: #f9f9f9; border-radius: 10px; padding: 16px; font-size: 14px; color: #444; line-height: 1.7; margin-top: 8px; }
+    .rec-box { background: #e8f8f2; border-radius: 10px; padding: 16px; font-size: 14px; color: #0F6E56; line-height: 1.7; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -29,33 +36,59 @@
     <input type="file" id="photo" accept="image/*">
     <button onclick="analyze()">Analyze Sample</button>
     <div id="loading">🔬 Analyzing... please wait</div>
-    <div class="result-box" id="result-box">
-      <div class="result-label">Vet Assessment</div>
+
+    <div class="report" id="report">
       <div id="badge"></div>
-      <pre id="result"></pre>
+
+      <div class="section-title">Visual Assessment</div>
+      <div class="row"><span class="label">Color</span><span class="value" id="color"></span></div>
+      <div class="row"><span class="label">Consistency</span><span class="value" id="consistency"></span></div>
+      <div class="row"><span class="label">Blood Present</span><span class="value" id="blood"></span></div>
+      <div class="row"><span class="label">Mucus Present</span><span class="value" id="mucus"></span></div>
+      <div class="row"><span class="label">Foreign Objects</span><span class="value" id="foreign"></span></div>
+
+      <div class="section-title">Recommendation</div>
+      <div class="rec-box" id="recommendation"></div>
+
+      <div class="section-title">Vet Notes</div>
+      <div class="notes-box" id="vet_notes"></div>
     </div>
   </div>
 
   <script>
+    function flag(val) {
+      return val
+        ? '<span class="flag-yes">Yes ⚠️</span>'
+        : '<span class="flag-no">No ✓</span>';
+    }
+
     async function analyze() {
       const file = document.getElementById("photo").files[0];
       if (!file) { alert("Please select a photo first"); return; }
-      
+
       document.getElementById("loading").style.display = "block";
-      document.getElementById("result-box").style.display = "none";
-      
+      document.getElementById("report").style.display = "none";
+
       const form = new FormData();
       form.append("photo", file);
-      
+
       const res = await fetch("/analyze", { method: "POST", body: form });
       const data = await res.json();
-      
+
       document.getElementById("loading").style.display = "none";
-      document.getElementById("result-box").style.display = "block";
-      
+      document.getElementById("report").style.display = "block";
+
       const urgency = data.urgency || "unknown";
-      document.getElementById("badge").innerHTML = `<span class="urgency-badge ${urgency}">${urgency.toUpperCase()}</span>`;
-      document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+      document.getElementById("badge").innerHTML =
+        `<span class="badge ${urgency}">${urgency.replace("_", " ").toUpperCase()}</span>`;
+
+      document.getElementById("color").textContent = data.color || "—";
+      document.getElementById("consistency").textContent = data.consistency || "—";
+      document.getElementById("blood").innerHTML = flag(data.blood_present);
+      document.getElementById("mucus").innerHTML = flag(data.mucus_present);
+      document.getElementById("foreign").innerHTML = flag(data.foreign_objects);
+      document.getElementById("recommendation").textContent = data.recommendation || "—";
+      document.getElementById("vet_notes").textContent = data.vet_notes || "—";
     }
   </script>
 </body>
