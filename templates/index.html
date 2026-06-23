@@ -1,17 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>PoopSense 🐾</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PoopSense</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, sans-serif; background: #f9f9f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .card { background: white; border-radius: 16px; padding: 40px; max-width: 620px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f4f6f5; min-height: 100vh; padding: 24px; color: #17211d; }
+    .card { background: white; border-radius: 8px; padding: 36px; max-width: 760px; width: 100%; margin: 0 auto; box-shadow: 0 4px 24px rgba(0,0,0,0.07); }
     h1 { font-size: 28px; margin-bottom: 8px; }
-    .subtitle { color: #888; margin-bottom: 28px; font-size: 15px; }
-    input[type="file"] { display: block; margin-bottom: 16px; font-size: 14px; }
-    button { padding: 12px 28px; background: #1D9E75; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; width: 100%; }
+    .subtitle { color: #68736d; margin-bottom: 24px; font-size: 15px; }
+    .notice { border: 1px solid #d9a521; border-left: 4px solid #d9a521; background: #fffaf0; padding: 18px; margin-bottom: 20px; font-size: 14px; line-height: 1.55; }
+    .notice strong { display: block; margin-bottom: 6px; color: #654b00; }
+    .notice ul { padding-left: 18px; margin-top: 8px; }
+    .consent { display: flex; gap: 10px; align-items: flex-start; padding: 14px; border: 1px solid #dce3df; margin-bottom: 18px; font-size: 14px; line-height: 1.45; cursor: pointer; }
+    .consent input { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 auto; }
+    .upload-label { display: block; font-size: 13px; font-weight: 650; margin-bottom: 8px; }
+    input[type="file"] { display: block; width: 100%; margin-bottom: 16px; font-size: 14px; border: 1px solid #dce3df; padding: 12px; }
+    button { padding: 13px 28px; background: #1D9E75; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: 650; width: 100%; }
     button:hover { background: #0F6E56; }
+    button:disabled { background: #aeb8b3; cursor: not-allowed; }
     #loading { display: none; text-align: center; color: #888; margin-top: 20px; font-size: 14px; }
+    #error { display: none; margin-top: 16px; padding: 12px; background: #fff0f0; color: #a11b1b; font-size: 14px; }
     .report { margin-top: 28px; display: none; }
     .badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 20px; }
     .normal { background: #d4f5e9; color: #0F6E56; }
@@ -22,73 +31,165 @@
     .row:last-of-type { border-bottom: none; }
     .label { font-size: 14px; color: #888; }
     .value { font-size: 14px; font-weight: 500; color: #1a1a1a; text-align: right; max-width: 60%; }
-    .flag-yes { color: #cc0000; }
-    .flag-no { color: #0F6E56; }
     .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin: 20px 0 10px; }
     .notes-box { background: #f9f9f9; border-radius: 10px; padding: 16px; font-size: 14px; color: #444; line-height: 1.7; margin-top: 8px; }
     .rec-box { background: #e8f8f2; border-radius: 10px; padding: 16px; font-size: 14px; color: #0F6E56; line-height: 1.7; margin-top: 8px; }
+    .result-disclaimer { border-top: 1px solid #e4e9e6; margin-top: 24px; padding-top: 16px; color: #68736d; font-size: 12px; line-height: 1.5; }
+    .emergency-note { color: #8d1919; font-weight: 650; }
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .card { padding: 24px 18px; }
+      .row { align-items: flex-start; gap: 16px; }
+      .value { max-width: 58%; }
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>PoopSense 🐾</h1>
-    <p class="subtitle">AI-powered veterinary fecal assessment</p>
+    <h1>PoopSense</h1>
+    <p class="subtitle">AI-assisted visual stool screening for pet owners</p>
+
+    <div class="notice">
+      <strong>Important safety notice</strong>
+      PoopSense is an informational AI tool, not a veterinarian. It cannot diagnose illness, confirm parasites, replace fecal testing or an examination, or provide treatment.
+      <ul>
+        <li>Contact a veterinarian promptly when your pet is unwell or the stool is repeatedly abnormal.</li>
+        <li>Seek urgent veterinary care for collapse, weakness, repeated vomiting, breathing trouble, pale gums, severe pain, a swollen abdomen, substantial blood, or black/tarry stool.</li>
+        <li>For possible poisoning, contact a veterinarian or <a href="https://www.aspca.org/pet-care/aspca-poison-control" target="_blank" rel="noreferrer">ASPCA Animal Poison Control</a> at (888) 426-4435. Fees may apply.</li>
+      </ul>
+    </div>
+
+    <label class="consent">
+      <input type="checkbox" id="consent">
+      <span>I understand that PoopSense provides only an AI visual screening, is not veterinary advice or a diagnosis, may be incomplete or wrong, and should not delay professional or emergency care.</span>
+    </label>
+
+    <label class="upload-label" for="photo">Pet stool photo</label>
     <input type="file" id="photo" accept="image/*" capture="environment">
-    <button onclick="analyze()">Analyze Sample</button>
-    <div id="loading">🔬 Analyzing... please wait</div>
+    <button id="analyzeButton" onclick="analyze()" disabled>Accept notice to analyze</button>
+    <div id="loading">Analyzing the visible sample. Please wait.</div>
+    <div id="error" role="alert"></div>
 
     <div class="report" id="report">
       <div id="badge"></div>
 
       <div class="section-title">Visual Assessment</div>
+      <div class="row"><span class="label">Image Quality</span><span class="value" id="image_quality"></span></div>
       <div class="row"><span class="label">Color</span><span class="value" id="color"></span></div>
       <div class="row"><span class="label">Consistency</span><span class="value" id="consistency"></span></div>
-      <div class="row"><span class="label">Blood Present</span><span class="value" id="blood"></span></div>
-      <div class="row"><span class="label">Mucus Present</span><span class="value" id="mucus"></span></div>
-      <div class="row"><span class="label">Foreign Objects</span><span class="value" id="foreign"></span></div>
+      <div class="row"><span class="label">Stool Score</span><span class="value" id="stool_score"></span></div>
+      <div class="row"><span class="label">Shape and Texture</span><span class="value" id="shape"></span></div>
+      <div class="row"><span class="label">Visible Blood</span><span class="value" id="blood"></span></div>
+      <div class="row"><span class="label">Visible Mucus</span><span class="value" id="mucus"></span></div>
+      <div class="row"><span class="label">Coating or Grease</span><span class="value" id="coating"></span></div>
+      <div class="row"><span class="label">Parasite-like Material</span><span class="value" id="parasites"></span></div>
+      <div class="row"><span class="label">Foreign Material</span><span class="value" id="foreign"></span></div>
+      <div class="row"><span class="label">Undigested Material</span><span class="value" id="undigested"></span></div>
 
       <div class="section-title">Recommendation</div>
       <div class="rec-box" id="recommendation"></div>
 
-      <div class="section-title">Vet Notes</div>
-      <div class="notes-box" id="vet_notes"></div>
+      <div class="section-title">Why This Urgency</div>
+      <div class="notes-box" id="urgency_reasons"></div>
+
+      <div class="section-title">Visible Findings</div>
+      <div class="notes-box" id="findings"></div>
+
+      <div class="section-title">Possible Explanations, Not Diagnoses</div>
+      <div class="notes-box" id="explanations"></div>
+
+      <div class="section-title">Monitor For</div>
+      <div class="notes-box" id="monitor_for"></div>
+
+      <div class="section-title">Questions for Your Veterinarian</div>
+      <div class="notes-box" id="questions_for_vet"></div>
+
+      <div class="section-title">Image Limitations</div>
+      <div class="notes-box" id="limitations"></div>
+
+      <div class="result-disclaimer" id="result_disclaimer"></div>
     </div>
   </div>
 
   <script>
-    function flag(val) {
-      return val
-        ? '<span class="flag-yes">Yes ⚠️</span>'
-        : '<span class="flag-no">No ✓</span>';
+    const disclosureVersion = "{{ disclosure_version }}";
+    const consent = document.getElementById("consent");
+    const analyzeButton = document.getElementById("analyzeButton");
+
+    consent.addEventListener("change", () => {
+      analyzeButton.disabled = !consent.checked;
+      analyzeButton.textContent = consent.checked ? "Analyze Sample" : "Accept notice to analyze";
+    });
+
+    function list(items, fallback = "None noted from this image.") {
+      if (!Array.isArray(items) || !items.length) return fallback;
+      return items.map(item => `• ${escapeHtml(String(item))}`).join("<br>");
+    }
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value;
+      return div.innerHTML;
     }
 
     async function analyze() {
       const file = document.getElementById("photo").files[0];
       if (!file) { alert("Please select a photo first"); return; }
+      if (!consent.checked) {
+        alert("Please read and accept the safety notice first");
+        return;
+      }
 
       document.getElementById("loading").style.display = "block";
       document.getElementById("report").style.display = "none";
+      document.getElementById("error").style.display = "none";
+      analyzeButton.disabled = true;
 
       const form = new FormData();
       form.append("photo", file);
+      form.append("disclosure_accepted", "true");
+      form.append("disclosure_version", disclosureVersion);
 
-      const res = await fetch("/analyze", { method: "POST", body: form });
-      const data = await res.json();
+      try {
+        const res = await fetch("/analyze", { method: "POST", body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Analysis failed (${res.status})`);
 
-      document.getElementById("loading").style.display = "none";
-      document.getElementById("report").style.display = "block";
+        document.getElementById("report").style.display = "block";
 
-      const urgency = data.urgency || "unknown";
-      document.getElementById("badge").innerHTML =
-        `<span class="badge ${urgency}">${urgency.replace("_", " ").toUpperCase()}</span>`;
+        const urgency = data.urgency || "unknown";
+        document.getElementById("badge").innerHTML =
+          `<span class="badge ${urgency}">${escapeHtml(urgency.replace("_", " ").toUpperCase())}</span>`;
 
-      document.getElementById("color").textContent = data.color || "—";
-      document.getElementById("consistency").textContent = data.consistency || "—";
-      document.getElementById("blood").innerHTML = flag(data.blood_present);
-      document.getElementById("mucus").innerHTML = flag(data.mucus_present);
-      document.getElementById("foreign").innerHTML = flag(data.foreign_objects);
-      document.getElementById("recommendation").textContent = data.recommendation || "—";
-      document.getElementById("vet_notes").textContent = data.vet_notes || "—";
+        document.getElementById("image_quality").textContent =
+          [data.image_quality, data.image_quality_notes].filter(Boolean).join(" — ") || "Unclear";
+        document.getElementById("color").textContent = data.color || "Unclear";
+        document.getElementById("consistency").textContent = data.consistency || "Unclear";
+        document.getElementById("stool_score").textContent =
+          data.stool_score ? `${data.stool_score} of 7` : "Unable to score";
+        document.getElementById("shape").textContent = data.shape_and_texture || "Unclear";
+        document.getElementById("blood").textContent = data.blood_visible || "Unclear";
+        document.getElementById("mucus").textContent = data.mucus_visible || "Unclear";
+        document.getElementById("coating").textContent = data.coating_or_grease || "Unclear";
+        document.getElementById("parasites").textContent = data.parasite_like_material || "Unclear";
+        document.getElementById("foreign").textContent = data.foreign_material || "Unclear";
+        document.getElementById("undigested").textContent = data.undigested_material || "Unclear";
+        document.getElementById("recommendation").textContent = data.recommendation || "Contact your veterinarian if you are concerned.";
+        document.getElementById("urgency_reasons").innerHTML = list(data.urgency_reasons);
+        document.getElementById("findings").innerHTML = list(data.visible_findings);
+        document.getElementById("explanations").innerHTML = list(data.possible_non_diagnostic_explanations);
+        document.getElementById("monitor_for").innerHTML = list(data.monitor_for);
+        document.getElementById("questions_for_vet").innerHTML = list(data.questions_for_vet);
+        document.getElementById("limitations").innerHTML = list(data.limitations);
+        document.getElementById("result_disclaimer").textContent = data.disclaimer || "";
+      } catch (error) {
+        const box = document.getElementById("error");
+        box.textContent = error.message || "Analysis failed. Please try again.";
+        box.style.display = "block";
+      } finally {
+        document.getElementById("loading").style.display = "none";
+        analyzeButton.disabled = !consent.checked;
+      }
     }
   </script>
 </body>

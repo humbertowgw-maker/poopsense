@@ -16,7 +16,7 @@ def print_report(assessment):
     color = URGENCY_COLORS.get(urgency, "white")
 
     console.print(Panel(
-        f"[bold]PoopSense Vet Report[/bold]",
+        "[bold]PoopSense Visual Screening[/bold]",
         style=f"bold {color}"
     ))
 
@@ -33,4 +33,4 @@ def print_report(assessment):
 
     console.print(table)
     console.print(f"\n[bold]Recommendation:[/bold] {assessment.get('recommendation','')}")
-    console.print(f"\n[dim]Vet notes: {assessment.get('vet_notes','')}[/dim]")
+    console.print("\n[dim]Informational AI screening only. Not a veterinary diagnosis.[/dim]")

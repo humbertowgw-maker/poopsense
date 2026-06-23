@@ -1,6 +1,5 @@
 import anthropic
 import os
-import sys
 import json
 from dotenv import load_dotenv
 from image_handler import image_to_base64
@@ -11,10 +10,10 @@ load_dotenv()
 def analyze(image_path):
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     b64_image = image_to_base64(image_path)
-    
+
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1024,
+        max_tokens=1800,
         messages=[{
             "role": "user",
             "content": [
@@ -31,5 +30,13 @@ def analyze(image_path):
         }]
     )
     raw = message.content[0].text
+    return parse_json_response(raw)
+
+
+def parse_json_response(raw):
     clean = raw.replace("```json", "").replace("```", "").strip()
-    return json.loads(clean)
+    start = clean.find("{")
+    end = clean.rfind("}")
+    if start == -1 or end == -1:
+        raise ValueError("No JSON object returned")
+    return json.loads(clean[start:end + 1])

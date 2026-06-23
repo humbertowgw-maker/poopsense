@@ -1,6 +1,11 @@
-# PoopSense 🐾
+# PoopSense
 
-AI-powered veterinary fecal assessment tool.
+AI-assisted visual stool screening for pet owners.
+
+PoopSense is an informational tool, not a veterinarian. It does not diagnose
+illness and should not replace veterinary examination, fecal testing, treatment,
+or emergency care. The web app requires users to acknowledge this notice before
+requesting an analysis.
 
 **Live Demo:** https://web-production-fb2d1.up.railway.app
 
