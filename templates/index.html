@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PoopSense 🐾</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; }
+    h1 { font-size: 32px; margin-bottom: 8px; }
+    p { color: #666; margin-bottom: 24px; }
+    input { margin-bottom: 16px; display: block; }
+    button { padding: 10px 24px; background: #1D9E75; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #0F6E56; }
+    pre { background: #f4f4f4; padding: 20px; border-radius: 8px; margin-top: 24px; white-space: pre-wrap; }
+    #loading { display: none; color: #666; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>PoopSense 🐾</h1>
+  <p>Upload a photo for an AI-powered vet assessment</p>
+  <input type="file" id="photo" accept="image/*">
+  <button onclick="analyze()">Analyze</button>
+  <div id="loading">Analyzing... please wait ⏳</div>
+  <pre id="result"></pre>
+
+  <script>
+    async function analyze() {
+      const file = document.getElementById("photo").files[0];
+      if (!file) { alert("Please select a photo first"); return; }
+      
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("result").textContent = "";
+      
+      const form = new FormData();
+      form.append("photo", file);
+      
+      const res = await fetch("/analyze", { method: "POST", body: form });
+      const data = await res.json();
+      
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
