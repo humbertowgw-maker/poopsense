@@ -1,15 +1,52 @@
 import os
 import tempfile
 import math
+import time
+from collections import defaultdict, deque
 from urllib.parse import quote_plus
 import httpx
 from flask import Flask, request, jsonify, render_template
+from PIL import Image, UnidentifiedImageError
+from werkzeug.middleware.proxy_fix import ProxyFix
 from analyzer import analyze
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+Image.MAX_IMAGE_PIXELS = 20_000_000
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+ANALYZE_WINDOW_SECONDS = 60 * 60
+ANALYZE_MAX_REQUESTS = 10
+_analyze_requests = defaultdict(deque)
 
 DISCLOSURE_VERSION = "2026-06-23"
+
+
+@app.after_request
+def security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; "
+        "form-action 'self'; frame-ancestors 'none'"
+    )
+    return response
+
+
+def analysis_rate_allowed():
+    now = time.time()
+    client = request.remote_addr or "unknown"
+    requests = _analyze_requests[client]
+    while requests and now - requests[0] > ANALYZE_WINDOW_SECONDS:
+        requests.popleft()
+    if len(requests) >= ANALYZE_MAX_REQUESTS:
+        return False
+    requests.append(now)
+    return True
 
 @app.route("/")
 def home():
@@ -17,6 +54,8 @@ def home():
 
 @app.route("/analyze", methods=["POST"])
 def analyze_route():
+    if not analysis_rate_allowed():
+        return jsonify({"error": "Analysis limit reached. Please try again later."}), 429
     accepted = request.form.get("disclosure_accepted") == "true"
     version = request.form.get("disclosure_version")
     if not accepted or version != DISCLOSURE_VERSION:
@@ -30,15 +69,25 @@ def analyze_route():
     photo = request.files["photo"]
     if not photo.filename:
         return jsonify({"error": "Please select a photo first"}), 400
-    if not (photo.mimetype or "").startswith("image/"):
+    content_type = (photo.mimetype or "").lower()
+    if content_type not in ALLOWED_IMAGE_TYPES:
         return jsonify({"error": "The uploaded file must be an image"}), 400
 
-    suffix = os.path.splitext(photo.filename)[1].lower() or ".jpg"
+    suffix = ALLOWED_IMAGE_TYPES[content_type]
     temp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             photo.save(temp_file.name)
             temp_path = temp_file.name
+
+        try:
+            with Image.open(temp_path) as uploaded:
+                width, height = uploaded.size
+                uploaded.verify()
+            if width * height > Image.MAX_IMAGE_PIXELS:
+                return jsonify({"error": "The image dimensions are too large."}), 400
+        except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+            return jsonify({"error": "The uploaded file is not a valid supported image."}), 400
 
         result = analyze(temp_path)
         result["disclaimer"] = (
