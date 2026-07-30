@@ -2,7 +2,16 @@ import io
 import unittest
 from unittest.mock import patch
 
+from PIL import Image
+
 from app import app, DISCLOSURE_VERSION
+
+
+def valid_jpeg():
+    payload = io.BytesIO()
+    Image.new("RGB", (2, 2), "brown").save(payload, format="JPEG")
+    payload.seek(0)
+    return payload
 
 
 class AnalyzeConsentTests(unittest.TestCase):
@@ -26,7 +35,7 @@ class AnalyzeConsentTests(unittest.TestCase):
         response = self.client.post(
             "/analyze",
             data={
-                "photo": (io.BytesIO(b"image"), "sample.jpg", "image/jpeg"),
+                "photo": (valid_jpeg(), "sample.jpg", "image/jpeg"),
                 "disclosure_accepted": "true",
                 "disclosure_version": DISCLOSURE_VERSION,
             },

@@ -9,6 +9,7 @@ from flask import Flask, request, jsonify, render_template
 from PIL import Image, UnidentifiedImageError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from analyzer import analyze
+from metrics import portfolio_metrics, record_screening, record_vet_search
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
@@ -51,6 +52,12 @@ def analysis_rate_allowed():
 @app.route("/")
 def home():
     return render_template("index.html", disclosure_version=DISCLOSURE_VERSION)
+
+
+@app.route("/portfolio-metrics")
+def portfolio_metrics_route():
+    return jsonify(portfolio_metrics())
+
 
 @app.route("/analyze", methods=["POST"])
 def analyze_route():
@@ -95,6 +102,7 @@ def analyze_route():
             "does not diagnose disease, and cannot replace an examination or testing."
         )
         result["disclosure_version"] = DISCLOSURE_VERSION
+        record_screening()
         return jsonify(result)
     except Exception:
         app.logger.exception("PoopSense analysis failed")
@@ -195,6 +203,7 @@ def nearby_vets():
     verified_emergency = next((clinic for clinic in clinics if clinic["is_24_hour"]), None)
     selected = ([verified_emergency] if verified_emergency else []) + clinics[:10]
     clinics = list({(clinic["name"], clinic["latitude"], clinic["longitude"]): clinic for clinic in selected}.values())
+    record_vet_search()
     return jsonify({
         "clinics": clinics,
         "emergency_search_url": emergency_search_url(latitude, longitude),
