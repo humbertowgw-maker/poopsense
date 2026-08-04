@@ -2,6 +2,11 @@
 
 AI-assisted visual stool screening for pet owners.
 
+PoopSense also supports non-diagnostic dog and cat skin/coat photo screening.
+Choose **Skin issue** on the homepage, or send `analysis_type=skin` as multipart
+form data or a query parameter. Existing clients remain stool-first because an
+omitted or blank `analysis_type` defaults to `stool`.
+
 PoopSense is an informational tool, not a veterinarian. It does not diagnose
 illness and should not replace veterinary examination, fecal testing, treatment,
 or emergency care. The web app requires users to acknowledge this notice before
