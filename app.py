@@ -5,7 +5,7 @@ import time
 from collections import defaultdict, deque
 from urllib.parse import quote_plus
 import httpx
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_migrate import Migrate
 from PIL import Image, UnidentifiedImageError
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -63,6 +63,19 @@ def analysis_rate_allowed():
 @app.route("/")
 def home():
     return render_template("index.html", disclosure_version=DISCLOSURE_VERSION)
+
+
+@app.route("/manifest.webmanifest")
+def web_manifest():
+    return send_from_directory(app.static_folder, "manifest.webmanifest", mimetype="application/manifest+json")
+
+
+@app.route("/sw.js")
+def service_worker():
+    response = send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.route("/portfolio-metrics")
