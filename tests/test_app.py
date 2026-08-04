@@ -44,7 +44,9 @@ class AnalyzeConsentTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Settings & support", page)
-        self.assertIn("https://thepass.whitegwireless.com/?tip=brigade", page)
+        self.assertIn("tip=brigade&amp;source=poopsense", page)
+        self.assertIn("utm_source=poopsense", page)
+        self.assertIn("utm_campaign=tip_jar", page)
         self.assertIn("PoopSense does not receive or store your card details", page)
 
     @patch("app.analyze")
