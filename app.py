@@ -6,14 +6,25 @@ from collections import defaultdict, deque
 from urllib.parse import quote_plus
 import httpx
 from flask import Flask, request, jsonify, render_template
+from flask_migrate import Migrate
 from PIL import Image, UnidentifiedImageError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from analyzer import analyze
 from metrics import portfolio_metrics, record_screening, record_vet_search
+from models import Analysis, PetType, db
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+database_url = os.environ.get(
+    "DATABASE_URL", f"sqlite:///{os.path.join(app.root_path, 'poopsense.sqlite3')}"
+)
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+migrate = Migrate(app, db)
 Image.MAX_IMAGE_PIXELS = 20_000_000
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
@@ -70,6 +81,12 @@ def analyze_route():
             "error": "Please confirm that you understand the PoopSense safety notice before requesting an analysis."
         }), 400
 
+    # Multipart data wins when both are supplied, while query-only and legacy
+    # clients remain supported. Blank values retain the historical dog default.
+    pet_type = (request.form.get("pet_type") or request.args.get("pet_type") or "dog").lower().strip()
+    if pet_type not in {member.value for member in PetType}:
+        return jsonify({"error": "pet_type must be 'dog' or 'cat'"}), 400
+
     if "photo" not in request.files:
         return jsonify({"error": "No photo uploaded"}), 400
 
@@ -96,15 +113,19 @@ def analyze_route():
         except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
             return jsonify({"error": "The uploaded file is not a valid supported image."}), 400
 
-        result = analyze(temp_path)
+        result = analyze(temp_path, pet_type=pet_type)
         result["disclaimer"] = (
             "Informational visual screening only. PoopSense is not a veterinarian, "
             "does not diagnose disease, and cannot replace an examination or testing."
         )
         result["disclosure_version"] = DISCLOSURE_VERSION
+        analysis = Analysis(pet_type=PetType(pet_type), result=result)
+        db.session.add(analysis)
+        db.session.commit()
         record_screening()
         return jsonify(result)
     except Exception:
+        db.session.rollback()
         app.logger.exception("PoopSense analysis failed")
         return jsonify({
             "error": "The image could not be analyzed right now. Please try another clear photo or contact your veterinarian."
