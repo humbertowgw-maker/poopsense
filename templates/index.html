@@ -207,6 +207,7 @@
     .pet-option:hover { transform: translateY(-1px); border-color: #91cdb9; }
     .pet-option:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-dark); box-shadow: 0 0 0 3px rgba(20,125,100,.08); }
     .pet-option input { accent-color: var(--brand); }
+    .skin-only { display: none; }
     .upload-shell { border: 1.5px dashed #98b9ac; border-radius: 14px; background: white; padding: 18px; margin-bottom: 14px; transition: border-color .2s, background .2s; }
     .upload-shell:hover { border-color: var(--brand); background: #f8fcfa; }
     input[type="file"]::file-selector-button { border: 0; border-radius: 9px; padding: 10px 14px; margin-right: 12px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 750; cursor: pointer; }
@@ -297,7 +298,15 @@
         </div>
       </fieldset>
 
-      <label class="upload-label" for="photo">Pet stool photo</label>
+      <fieldset class="pet-selector">
+        <legend class="upload-label">What would you like to check?</legend>
+        <div class="pet-options">
+          <label class="pet-option"><input type="radio" name="analysis_type" value="stool" checked> 💩 Stool</label>
+          <label class="pet-option"><input type="radio" name="analysis_type" value="skin"> 🩹 Skin issue</label>
+        </div>
+      </fieldset>
+
+      <label class="upload-label" id="photoLabel" for="photo">Pet stool photo</label>
       <div class="upload-shell">
         <input type="file" id="photo" accept="image/*" capture="environment">
       </div>
@@ -314,8 +323,10 @@
 
       <div class="summary-grid">
         <div class="summary-item"><span class="summary-label">Color</span><span class="summary-value" id="summary_color"></span></div>
-        <div class="summary-item"><span class="summary-label">Consistency</span><span class="summary-value" id="summary_consistency"></span></div>
-        <div class="summary-item"><span class="summary-label">Stool score</span><span class="summary-value" id="summary_score"></span></div>
+        <div class="summary-item stool-only"><span class="summary-label">Consistency</span><span class="summary-value" id="summary_consistency"></span></div>
+        <div class="summary-item stool-only"><span class="summary-label">Stool score</span><span class="summary-value" id="summary_score"></span></div>
+        <div class="summary-item skin-only"><span class="summary-label">Visible change</span><span class="summary-value" id="summary_lesion"></span></div>
+        <div class="summary-item skin-only"><span class="summary-label">Body area</span><span class="summary-value" id="summary_body_area"></span></div>
       </div>
 
       <div class="rec-box" id="recommendation"></div>
@@ -324,7 +335,7 @@
         <a href="#photo">New photo</a>
       </div>
 
-      <details class="report-section" open>
+      <details class="report-section stool-only" open>
         <summary>Visible findings</summary>
         <div class="section-body">
           <div class="notes-box" id="findings"></div>
@@ -335,7 +346,7 @@
         </div>
       </details>
 
-      <details class="report-section">
+      <details class="report-section stool-only">
         <summary>Full visual assessment</summary>
         <div class="section-body">
           <div class="row"><span class="label">Image Quality</span><span class="value" id="image_quality"></span></div>
@@ -353,6 +364,22 @@
           <div class="row"><span class="label">Undigested Material</span><span class="value" id="undigested"></span></div>
           <div class="row"><span class="label">Hair or Plant Material</span><span class="value" id="hair_plant"></span></div>
           <div class="row"><span class="label">Photo Surroundings</span><span class="value" id="surroundings"></span></div>
+        </div>
+      </details>
+
+      <details class="report-section skin-only" id="skinAssessment" open>
+        <summary>Skin and coat assessment</summary>
+        <div class="section-body">
+          <div class="notes-box" id="skin_findings"></div>
+          <div class="row"><span class="label">Body Area</span><span class="value" id="body_area"></span></div>
+          <div class="row"><span class="label">Visible Change</span><span class="value" id="lesion_type"></span></div>
+          <div class="row"><span class="label">Distribution</span><span class="value" id="distribution"></span></div>
+          <div class="row"><span class="label">Redness</span><span class="value" id="redness"></span></div>
+          <div class="row"><span class="label">Swelling</span><span class="value" id="swelling"></span></div>
+          <div class="row"><span class="label">Hair Loss</span><span class="value" id="hair_loss"></span></div>
+          <div class="row"><span class="label">Coat Condition</span><span class="value" id="coat_condition"></span></div>
+          <div class="row"><span class="label">Discharge or Bleeding</span><span class="value" id="discharge_or_bleeding"></span></div>
+          <div class="row"><span class="label">Parasite-like Material</span><span class="value" id="skin_parasites"></span></div>
         </div>
       </details>
 
@@ -408,6 +435,19 @@
     document.querySelectorAll('input[name="pet_type"]').forEach(input => {
       input.addEventListener("change", () => localStorage.setItem("poopsense_pet_type", input.value));
     });
+    const photoLabel = document.getElementById("photoLabel");
+    function updateAnalysisTypeUI() {
+      const type = document.querySelector('input[name="analysis_type"]:checked').value;
+      photoLabel.textContent = type === "skin" ? "Pet skin or coat photo" : "Pet stool photo";
+      document.querySelector(".panel-copy").textContent = type === "skin"
+        ? "Choose your pet, then add a clear photo of the affected skin or coat area."
+        : "Choose your pet, then add one clear, well-lit stool photo.";
+      localStorage.setItem("poopsense_analysis_type", type);
+    }
+    const savedAnalysisType = localStorage.getItem("poopsense_analysis_type");
+    if (savedAnalysisType === "skin") document.querySelector('input[name="analysis_type"][value="skin"]').checked = true;
+    document.querySelectorAll('input[name="analysis_type"]').forEach(input => input.addEventListener("change", updateAnalysisTypeUI));
+    updateAnalysisTypeUI();
 
     consent.addEventListener("change", () => {
       analyzeButton.disabled = !consent.checked;
@@ -441,6 +481,7 @@
       const form = new FormData();
       form.append("photo", file);
       form.append("pet_type", document.querySelector('input[name="pet_type"]:checked').value);
+      form.append("analysis_type", document.querySelector('input[name="analysis_type"]:checked').value);
       form.append("disclosure_accepted", "true");
       form.append("disclosure_version", disclosureVersion);
 
@@ -450,6 +491,10 @@
         if (!res.ok) throw new Error(data.error || `Analysis failed (${res.status})`);
 
         document.getElementById("report").style.display = "block";
+
+        const isSkin = data.analysis_type === "skin";
+        document.querySelectorAll(".stool-only").forEach(el => el.style.display = isSkin ? "none" : "");
+        document.querySelectorAll(".skin-only").forEach(el => el.style.display = isSkin ? "block" : "none");
 
         const urgency = data.urgency || "unknown";
         document.getElementById("badge").innerHTML =
@@ -461,10 +506,23 @@
         document.getElementById("consistency").textContent = data.consistency || "Unclear";
         document.getElementById("stool_score").textContent =
           data.stool_score ? `${data.stool_score} of 7` : "Unable to score";
-        document.getElementById("summary_color").textContent = data.color || "Unclear";
+        document.getElementById("summary_color").textContent =
+          (isSkin ? data.skin_color : data.color) || "Unclear";
         document.getElementById("summary_consistency").textContent = data.consistency || "Unclear";
         document.getElementById("summary_score").textContent =
           data.stool_score ? `${data.stool_score} / 7` : "Unclear";
+        document.getElementById("summary_lesion").textContent = data.lesion_type || "Unclear";
+        document.getElementById("summary_body_area").textContent = data.body_area || "Unclear";
+        document.getElementById("skin_findings").innerHTML = list(data.visible_findings);
+        document.getElementById("body_area").textContent = data.body_area || "Unclear";
+        document.getElementById("lesion_type").textContent = data.lesion_type || "Unclear";
+        document.getElementById("distribution").textContent = data.distribution || "Unclear";
+        document.getElementById("redness").textContent = data.redness || "Unclear";
+        document.getElementById("swelling").textContent = data.swelling || "Unclear";
+        document.getElementById("hair_loss").textContent = data.hair_loss || "Unclear";
+        document.getElementById("coat_condition").textContent = data.coat_condition || "Unclear";
+        document.getElementById("discharge_or_bleeding").textContent = data.discharge_or_bleeding || "Unclear";
+        document.getElementById("skin_parasites").textContent = data.visible_parasite_like_material || "Unclear";
         document.getElementById("score_confidence").textContent = data.stool_score_confidence || "Unclear";
         document.getElementById("shape").textContent = data.shape_and_texture || "Unclear";
         document.getElementById("segmentation").textContent = data.segmentation || "Unclear";

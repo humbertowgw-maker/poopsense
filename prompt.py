@@ -48,9 +48,53 @@ diagnosis.
 """ + OUTPUT_SCHEMA
 
 PROMPTS = {"dog": DOG_PROMPT, "cat": CAT_PROMPT}
+
+SKIN_OUTPUT_SCHEMA = """
+Return ONLY this JSON object:
+{
+  "image_quality": "good/fair/poor", "image_quality_notes": "",
+  "body_area": "", "skin_color": "", "coat_condition": "",
+  "lesion_type": "none/redness/rash/bump/scab/sore/hair loss/swelling/mixed/unclear",
+  "distribution": "single area/multiple areas/diffuse/unclear",
+  "redness": "none/mild/moderate/severe/unclear",
+  "swelling": "none/mild/moderate/severe/unclear",
+  "discharge_or_bleeding": "none/possible discharge/possible bleeding/unclear",
+  "hair_loss": "none/focal/patchy/diffuse/unclear",
+  "visible_parasite_like_material": "none visible/possible/unclear",
+  "visible_findings": [], "possible_non_diagnostic_explanations": [],
+  "urgency": "normal/monitor/vet_soon/emergency", "urgency_reasons": [],
+  "recommendation": "", "monitor_for": [], "questions_for_vet": [], "limitations": []
+}
+
+Remain strictly visual and non-diagnostic. Do not identify infection, allergy,
+fungus, mites, cancer, or another disease from the photo. Never recommend human
+medication or treatment. Advise prompt veterinary care for rapidly spreading
+swelling, facial swelling, breathing trouble, severe pain, deep/open wounds,
+heavy bleeding, extensive blistering, tissue discoloration, collapse, or a pet
+that is otherwise very unwell. State that many skin conditions look alike and
+may require an examination, skin scraping, cytology, culture, or other testing.
+"""
+
+DOG_SKIN_PROMPT = """
+You are an AI veterinary visual-screening assistant. Analyze this DOG skin or
+coat photo. Describe only visible features such as location, redness, swelling,
+hair loss, scaling, crusting, sores, bumps, moisture, discharge, bleeding, coat
+changes, and possible parasite-like material. Account for fur density and skin
+folds without inferring a diagnosis.
+""" + SKIN_OUTPUT_SCHEMA
+
+CAT_SKIN_PROMPT = """
+You are an AI veterinary visual-screening assistant. Analyze this CAT skin or
+coat photo. Describe only visible features such as location, redness, swelling,
+hair loss or over-groomed areas, scaling, crusting, sores, bumps, moisture,
+discharge, bleeding, coat changes, and possible parasite-like material. Account
+for dense fur and subtle feline skin changes without inferring a diagnosis.
+""" + SKIN_OUTPUT_SCHEMA
+
+SKIN_PROMPTS = {"dog": DOG_SKIN_PROMPT, "cat": CAT_SKIN_PROMPT}
 # Backward-compatible import for older callers.
 VET_PROMPT = DOG_PROMPT
 
 
-def prompt_for(pet_type):
-    return PROMPTS[pet_type]
+def prompt_for(pet_type, analysis_type="stool"):
+    return SKIN_PROMPTS[pet_type] if analysis_type == "skin" else PROMPTS[pet_type]

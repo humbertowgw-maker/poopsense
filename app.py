@@ -87,6 +87,10 @@ def analyze_route():
     if pet_type not in {member.value for member in PetType}:
         return jsonify({"error": "pet_type must be 'dog' or 'cat'"}), 400
 
+    analysis_type = (request.form.get("analysis_type") or request.args.get("analysis_type") or "stool").lower().strip()
+    if analysis_type not in {"stool", "skin"}:
+        return jsonify({"error": "analysis_type must be 'stool' or 'skin'"}), 400
+
     if "photo" not in request.files:
         return jsonify({"error": "No photo uploaded"}), 400
 
@@ -113,7 +117,8 @@ def analyze_route():
         except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
             return jsonify({"error": "The uploaded file is not a valid supported image."}), 400
 
-        result = analyze(temp_path, pet_type=pet_type)
+        result = analyze(temp_path, pet_type=pet_type, analysis_type=analysis_type)
+        result["analysis_type"] = analysis_type
         result["disclaimer"] = (
             "Informational visual screening only. PoopSense is not a veterinarian, "
             "does not diagnose disease, and cannot replace an examination or testing."

@@ -24,10 +24,14 @@ REQUIRED_DEFAULTS = {
     "possible_non_diagnostic_explanations": [], "urgency": "monitor",
     "urgency_reasons": [], "recommendation": "Contact your veterinarian if you are concerned.",
     "monitor_for": [], "questions_for_vet": [], "limitations": [],
+    "body_area": "unclear", "skin_color": "unclear", "coat_condition": "unclear",
+    "lesion_type": "unclear", "distribution": "unclear", "redness": "unclear",
+    "swelling": "unclear", "discharge_or_bleeding": "unclear", "hair_loss": "unclear",
+    "visible_parasite_like_material": "unclear",
 }
 
 
-def analyze(image_path, pet_type="dog"):
+def analyze(image_path, pet_type="dog", analysis_type="stool"):
     try:
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         message = client.messages.create(
@@ -36,13 +40,15 @@ def analyze(image_path, pet_type="dog"):
             messages=[{"role": "user", "content": [
                 {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
                  "data": image_to_base64(image_path)}},
-                {"type": "text", "text": prompt_for(pet_type)},
+                {"type": "text", "text": prompt_for(pet_type, analysis_type)},
             ]}],
         )
         raw = "".join(block.text for block in message.content if getattr(block, "text", None))
-        return normalize_result(parse_json_response(raw))
+        result = normalize_result(parse_json_response(raw))
+        result["analysis_type"] = analysis_type
+        return result
     except Exception:
-        return fallback_result(pet_type)
+        return fallback_result(pet_type, analysis_type)
 
 
 def parse_json_response(raw):
@@ -68,12 +74,14 @@ def normalize_result(result):
     return normalized
 
 
-def fallback_result(pet_type):
+def fallback_result(pet_type, analysis_type="stool"):
     result = dict(REQUIRED_DEFAULTS)
+    subject = "skin or coat" if analysis_type == "skin" else "stool"
     result["recommendation"] = (
-        f"The {pet_type} stool photo could not be analyzed right now. "
+        f"The {pet_type} {subject} photo could not be analyzed right now. "
         "Try another clear photo or contact your veterinarian."
     )
+    result["analysis_type"] = analysis_type
     result["limitations"] = ["The AI vision service was unavailable; no visual assessment was completed."]
     result["analysis_unavailable"] = True
     return result
