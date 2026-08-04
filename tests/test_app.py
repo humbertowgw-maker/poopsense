@@ -29,6 +29,15 @@ class AnalyzeConsentTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("safety notice", response.get_json()["error"])
 
+    def test_home_includes_user_controlled_vet_report_sharing(self):
+        response = self.client.get("/")
+        page = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Share with vet", page)
+        self.assertIn("The photo is not included automatically", page)
+        self.assertIn("navigator.share", page)
+
     @patch("app.analyze")
     def test_analysis_accepts_current_disclosure(self, analyze_mock):
         analyze_mock.return_value = {"urgency": "monitor"}
