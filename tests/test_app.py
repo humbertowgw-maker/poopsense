@@ -38,6 +38,15 @@ class AnalyzeConsentTests(unittest.TestCase):
         self.assertIn("The photo is not included automatically", page)
         self.assertIn("navigator.share", page)
 
+    def test_home_reuses_the_pass_tip_jar(self):
+        response = self.client.get("/")
+        page = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Settings & support", page)
+        self.assertIn("https://thepass.whitegwireless.com/?tip=brigade", page)
+        self.assertIn("PoopSense does not receive or store your card details", page)
+
     @patch("app.analyze")
     def test_analysis_accepts_current_disclosure(self, analyze_mock):
         analyze_mock.return_value = {"urgency": "monitor"}
