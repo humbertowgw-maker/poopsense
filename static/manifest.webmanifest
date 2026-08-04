@@ -1,0 +1,13 @@
+{
+  "name": "PoopSense Pet Wellness",
+  "short_name": "PoopSense",
+  "description": "AI-assisted visual stool and skin screening for dog and cat owners.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f8f6",
+  "theme_color": "#147d64",
+  "icons": [
+    { "src": "/static/icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
