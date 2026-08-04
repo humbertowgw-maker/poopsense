@@ -1,7 +1,9 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 .env
 *.jpeg
 *.jpg
 temp_upload.jpg
+poopsense.sqlite3
