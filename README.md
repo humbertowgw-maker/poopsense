@@ -1,5 +1,7 @@
 # PoopSense
 
+> **Project status:** First public version. This is an early informational preview, not a finished clinical or production-grade product.
+
 AI-assisted visual stool screening for pet owners.
 
 PoopSense also supports non-diagnostic dog and cat skin/coat photo screening.
