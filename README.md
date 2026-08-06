@@ -20,7 +20,7 @@ and is not stored by PoopSense.
 **Live Demo:** https://web-production-fb2d1.up.railway.app
 
 ## Tech Stack
-- Python 3.14
+- Python 3.13 (the version used by CI)
 - Flask
 - Anthropic Claude Vision API
 - Railway
