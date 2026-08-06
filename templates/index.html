@@ -509,6 +509,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const disclosureVersion = "{{ disclosure_version }}";
+    const apiKey = "{{ api_key }}";
     const screeningHistoryKey = "poopsense_screening_history_v1";
     let deferredInstallPrompt;
     let lastScreeningReport = null;
@@ -664,7 +665,11 @@
       form.append("disclosure_version", disclosureVersion);
 
       try {
-        const res = await fetch("/analyze", { method: "POST", body: form });
+        const res = await fetch("/analyze", {
+          method: "POST",
+          headers: { "X-API-Key": apiKey },
+          body: form,
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || `Analysis failed (${res.status})`);
 

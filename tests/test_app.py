@@ -1,10 +1,13 @@
 import io
+import os
 import unittest
 from unittest.mock import patch
 
 from PIL import Image
 
-from app import app, DISCLOSURE_VERSION
+from app import API_KEY_ENV_VAR, API_KEY_HEADER, app, DISCLOSURE_VERSION
+
+TEST_API_KEY = "test-suite-api-key"
 
 
 def valid_jpeg():
@@ -18,12 +21,17 @@ class AnalyzeConsentTests(unittest.TestCase):
     def setUp(self):
         app.config["TESTING"] = True
         self.client = app.test_client()
+        self._env_patch = patch.dict(os.environ, {API_KEY_ENV_VAR: TEST_API_KEY})
+        self._env_patch.start()
+        self.addCleanup(self._env_patch.stop)
+        self.auth_headers = {API_KEY_HEADER: TEST_API_KEY}
 
     def test_analysis_requires_disclosure_acceptance(self):
         response = self.client.post(
             "/analyze",
             data={"photo": (io.BytesIO(b"image"), "sample.jpg")},
             content_type="multipart/form-data",
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 400)
@@ -60,6 +68,7 @@ class AnalyzeConsentTests(unittest.TestCase):
                 "disclosure_version": DISCLOSURE_VERSION,
             },
             content_type="multipart/form-data",
+            headers=self.auth_headers,
         )
 
         self.assertEqual(response.status_code, 200)

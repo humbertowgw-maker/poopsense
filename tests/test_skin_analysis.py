@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -7,8 +8,10 @@ from unittest.mock import patch
 from PIL import Image
 
 from analyzer import analyze
-from app import DISCLOSURE_VERSION, _analyze_requests, app
+from app import API_KEY_ENV_VAR, API_KEY_HEADER, DISCLOSURE_VERSION, _analyze_requests, app
 from models import db
+
+TEST_API_KEY = "test-suite-api-key"
 
 
 def valid_jpeg():
@@ -49,6 +52,10 @@ class SkinRouteTests(unittest.TestCase):
             db.drop_all()
             db.create_all()
         self.client = app.test_client()
+        self._env_patch = patch.dict(os.environ, {API_KEY_ENV_VAR: TEST_API_KEY})
+        self._env_patch.start()
+        self.addCleanup(self._env_patch.stop)
+        self.auth_headers = {API_KEY_HEADER: TEST_API_KEY}
 
     def tearDown(self):
         with app.app_context():
@@ -66,14 +73,16 @@ class SkinRouteTests(unittest.TestCase):
 
     @patch("app.analyze", return_value={"urgency": "monitor"})
     def test_skin_form_value_reaches_analyzer(self, analyze_mock):
-        response = self.client.post("/analyze", data=self.payload(), content_type="multipart/form-data")
+        response = self.client.post(
+            "/analyze", data=self.payload(), content_type="multipart/form-data", headers=self.auth_headers
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["analysis_type"], "skin")
         self.assertEqual(analyze_mock.call_args.kwargs["analysis_type"], "skin")
 
     def test_invalid_analysis_type_is_rejected(self):
         response = self.client.post(
-            "/analyze", data=self.payload("xray"), content_type="multipart/form-data"
+            "/analyze", data=self.payload("xray"), content_type="multipart/form-data", headers=self.auth_headers
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("stool", response.get_json()["error"])
@@ -82,7 +91,9 @@ class SkinRouteTests(unittest.TestCase):
     def test_omitted_analysis_type_defaults_to_stool(self, analyze_mock):
         data = self.payload()
         data.pop("analysis_type")
-        response = self.client.post("/analyze", data=data, content_type="multipart/form-data")
+        response = self.client.post(
+            "/analyze", data=data, content_type="multipart/form-data", headers=self.auth_headers
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["analysis_type"], "stool")
         self.assertEqual(analyze_mock.call_args.kwargs["analysis_type"], "stool")

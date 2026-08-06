@@ -32,9 +32,41 @@ cd poopsense
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+export POOPSENSE_API_KEY=some-long-random-value  # required, see "API Key" below
 alembic upgrade head
 python app.py
 ```
+
+## API Key
+
+`/analyze` and `/portfolio-metrics` require a shared API key so the raw
+endpoints aren't wide open to anonymous scripts. Set `POOPSENSE_API_KEY` in
+the environment (Railway dashboard in production, `.env`/shell locally)
+before starting the app:
+
+```bash
+export POOPSENSE_API_KEY=some-long-random-value
+```
+
+Requests must include it as an `X-API-Key` header:
+
+```bash
+curl -X POST https://web-production-fb2d1.up.railway.app/analyze \
+  -H "X-API-Key: some-long-random-value" \
+  -F photo=@stool.jpg -F disclosure_accepted=true -F disclosure_version=2026-06-23
+```
+
+Missing or wrong keys get a `401` with a clear JSON error instead of being
+silently ignored, and if `POOPSENSE_API_KEY` isn't set at all the app fails
+closed (rejects everything) rather than defaulting to open access.
+
+The built-in web UI (`/`) keeps working for real visitors because the server
+renders the configured key into the page for its own `fetch("/analyze")`
+call. That means the key is visible in page source to anyone who loads the
+site — this is a lightweight deterrent against automated/direct-API abuse
+(scripts hitting the endpoint without ever loading the page), not a strong
+secret or a substitute for real user accounts. It's paired with the existing
+per-IP rate limit (10 requests/hour) on `/analyze`.
 
 ## Multi-Pet Support
 
@@ -108,12 +140,12 @@ production and broke in normal ways:
 - Live on Railway at the URL above (Flask + Gunicorn-free `app.run`, backed
   by Postgres in production via `DATABASE_URL`, SQLite locally).
 - CI (`.github/workflows/tests.yml`) runs `alembic upgrade head` against a
-  fresh SQLite DB and then the full `unittest` suite — 20 tests covering
-  consent enforcement, dog/cat prompt selection, skin vs. stool routing,
-  pet-type validation, backward-compatible migration of pre-existing rows,
-  and the vet finder — on every push. All 20 pass locally as of this
-  writing. A separate `security.yml` workflow runs `pip-audit` weekly plus
-  on every push to `main`.
+  fresh SQLite DB and then the full `unittest` suite — 27 tests covering
+  consent enforcement, the API-key gate, dog/cat prompt selection, skin vs.
+  stool routing, pet-type validation, backward-compatible migration of
+  pre-existing rows, and the vet finder — on every push. All 27 pass locally
+  as of this writing. A separate `security.yml` workflow runs `pip-audit`
+  weekly plus on every push to `main`.
 - The `/vets` endpoint queries OpenStreetMap's Overpass API live for nearby
   clinics, flags 24/7 locations as emergency options, and falls back to a
   Google Maps search link if Overpass is unreachable — no vet database to

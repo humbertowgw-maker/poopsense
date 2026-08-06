@@ -1,8 +1,10 @@
+import hmac
 import os
 import tempfile
 import math
 import time
 from collections import defaultdict, deque
+from functools import wraps
 from urllib.parse import quote_plus
 import httpx
 from flask import Flask, request, jsonify, render_template, send_from_directory
@@ -34,6 +36,33 @@ _analyze_requests = defaultdict(deque)
 
 DISCLOSURE_VERSION = "2026-06-23"
 
+API_KEY_ENV_VAR = "POOPSENSE_API_KEY"
+API_KEY_HEADER = "X-API-Key"
+
+
+def _configured_api_key():
+    return os.environ.get(API_KEY_ENV_VAR, "")
+
+
+def require_api_key(view):
+    """Gate a route behind a single shared API key.
+
+    Not a substitute for real accounts -- it exists to stop the raw JSON
+    endpoints being wide open to anonymous scripts/scanners. The key is also
+    rendered into the homepage for the built-in web UI (see home()) so real
+    visitors keep working; treat it as a deterrent, not a strong secret.
+    """
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        expected = _configured_api_key()
+        provided = request.headers.get(API_KEY_HEADER, "")
+        if not expected or not provided or not hmac.compare_digest(provided, expected):
+            return jsonify({
+                "error": "Missing or invalid API key. Include a valid X-API-Key header."
+            }), 401
+        return view(*args, **kwargs)
+    return wrapped
+
 
 @app.after_request
 def security_headers(response):
@@ -62,7 +91,11 @@ def analysis_rate_allowed():
 
 @app.route("/")
 def home():
-    return render_template("index.html", disclosure_version=DISCLOSURE_VERSION)
+    return render_template(
+        "index.html",
+        disclosure_version=DISCLOSURE_VERSION,
+        api_key=_configured_api_key(),
+    )
 
 
 @app.route("/manifest.webmanifest")
@@ -79,11 +112,13 @@ def service_worker():
 
 
 @app.route("/portfolio-metrics")
+@require_api_key
 def portfolio_metrics_route():
     return jsonify(portfolio_metrics())
 
 
 @app.route("/analyze", methods=["POST"])
+@require_api_key
 def analyze_route():
     if not analysis_rate_allowed():
         return jsonify({"error": "Analysis limit reached. Please try again later."}), 429
