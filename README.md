@@ -140,20 +140,25 @@ production and broke in normal ways:
 - Live on Railway at the URL above (Flask + Gunicorn-free `app.run`, backed
   by Postgres in production via `DATABASE_URL`, SQLite locally).
 - CI (`.github/workflows/tests.yml`) runs `alembic upgrade head` against a
-  fresh SQLite DB and then the full `unittest` suite — 27 tests covering
+  fresh SQLite DB and then the full `unittest` suite — 28 tests covering
   consent enforcement, the API-key gate, dog/cat prompt selection, skin vs.
   stool routing, pet-type validation, backward-compatible migration of
-  pre-existing rows, and the vet finder — on every push. All 27 pass locally
-  as of this writing. A separate `security.yml` workflow runs `pip-audit`
-  weekly plus on every push to `main`.
+  pre-existing rows, aggregate metrics storage, and the vet finder — on
+  every push. All 28 pass locally as of this writing. A separate
+  `security.yml` workflow runs `pip-audit` weekly plus on every push to
+  `main`.
 - The `/vets` endpoint queries OpenStreetMap's Overpass API live for nearby
   clinics, flags 24/7 locations as emergency options, and falls back to a
   Google Maps search link if Overpass is unreachable — no vet database to
   maintain, no stored user location.
 - `/portfolio-metrics` reports only aggregate weekly counts
-  (`completed_screenings`, `vet_searches`) from a separate local SQLite file
-  — no images, no location, no per-user data retained, which is enforced by
-  what the table schema does and doesn't store, not just a stated policy.
+  (`completed_screenings`, `vet_searches`) from the `weekly_portfolio_metrics`
+  table in the same Postgres database as everything else (migration
+  `0003_create_weekly_portfolio_metrics`) — no images, no location, no
+  per-user data retained, which is enforced by what the table schema does
+  and doesn't store, not just a stated policy. This used to live in a
+  separate local-only SQLite file that didn't survive Railway
+  restarts/redeploys; it's now durable alongside the rest of the app's data.
 - Installable as a PWA (`manifest.webmanifest`, service worker, on-device
   screening history) as of `7cf46e0`.
 

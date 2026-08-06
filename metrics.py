@@ -1,13 +1,14 @@
-import os
-import sqlite3
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects import sqlite as sqlite_dialect
 
-DEFAULT_METRICS_PATH = os.environ.get(
-    "METRICS_DB_PATH",
-    "/tmp/poopsense-portfolio-metrics.sqlite3",
-)
+from models import WeeklyPortfolioMetric, db
+
+_UPSERT_BY_DIALECT = {
+    "postgresql": postgresql.insert,
+    "sqlite": sqlite_dialect.insert,
+}
 
 
 def _week_start(now=None):
@@ -16,68 +17,58 @@ def _week_start(now=None):
     return monday.isoformat()
 
 
-def _connect(path=None):
-    selected = Path(path or DEFAULT_METRICS_PATH)
-    selected.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(selected, timeout=10)
-    connection.execute(
-        """
-        create table if not exists weekly_portfolio_metrics (
-          week_start text primary key,
-          completed_screenings integer not null default 0,
-          vet_searches integer not null default 0,
-          updated_at text not null
-        )
-        """
+def _insert_stub(week, observed):
+    table = WeeklyPortfolioMetric.__table__
+    dialect_name = db.engine.dialect.name
+    insert = _UPSERT_BY_DIALECT.get(dialect_name, sqlite_dialect.insert)
+    stmt = insert(table).values(
+        week_start=week, completed_screenings=0, vet_searches=0, updated_at=observed
     )
-    return connection
+    stmt = stmt.on_conflict_do_nothing(index_elements=["week_start"])
+    db.session.execute(stmt)
 
 
-def _increment(column, path=None, now=None):
+def _increment(column, now=None):
     if column not in {"completed_screenings", "vet_searches"}:
         raise ValueError("unsupported aggregate metric")
     observed = now or datetime.now(timezone.utc)
     week = _week_start(observed)
-    with _connect(path) as connection:
-        connection.execute(
-            """
-            insert into weekly_portfolio_metrics
-              (week_start, completed_screenings, vet_searches, updated_at)
-            values (?, 0, 0, ?)
-            on conflict(week_start) do nothing
-            """,
-            (week, observed.isoformat()),
-        )
-        connection.execute(
-            f"""
-            update weekly_portfolio_metrics
-            set {column} = {column} + 1, updated_at = ?
-            where week_start = ?
-            """,
-            (observed.isoformat(), week),
-        )
+
+    _insert_stub(week, observed)
+
+    table = WeeklyPortfolioMetric.__table__
+    db.session.execute(
+        table.update()
+        .where(table.c.week_start == week)
+        .values(**{column: table.c[column] + 1, "updated_at": observed})
+    )
+    db.session.commit()
 
 
-def record_screening(path=None, now=None):
-    _increment("completed_screenings", path=path, now=now)
+def record_screening(now=None):
+    _increment("completed_screenings", now=now)
 
 
-def record_vet_search(path=None, now=None):
-    _increment("vet_searches", path=path, now=now)
+def record_vet_search(now=None):
+    _increment("vet_searches", now=now)
 
 
-def portfolio_metrics(path=None, now=None):
+def portfolio_metrics(now=None):
     observed = now or datetime.now(timezone.utc)
-    with _connect(path) as connection:
-        row = connection.execute(
-            """
-            select completed_screenings, vet_searches, updated_at
-            from weekly_portfolio_metrics
-            where week_start = ?
-            """,
-            (_week_start(observed),),
-        ).fetchone()
-    completed, searches, updated_at = row or (0, 0, None)
+    week = _week_start(observed)
+    metric = db.session.get(WeeklyPortfolioMetric, week)
+
+    completed = metric.completed_screenings if metric else 0
+    searches = metric.vet_searches if metric else 0
+    updated_at = None
+    if metric and metric.updated_at:
+        # SQLite drops tzinfo on read-back for tz-aware columns (Postgres
+        # keeps it); everything we write is UTC, so normalize either way.
+        stored = metric.updated_at
+        if stored.tzinfo is None:
+            stored = stored.replace(tzinfo=timezone.utc)
+        updated_at = stored.isoformat()
+
     return {
         "privacy": "aggregate_only",
         "window": "calendar_week_utc",
