@@ -6,6 +6,7 @@ from unittest.mock import patch
 from PIL import Image
 
 from app import API_KEY_ENV_VAR, API_KEY_HEADER, app, DISCLOSURE_VERSION
+from models import db
 
 TEST_API_KEY = "test-suite-api-key"
 
@@ -20,11 +21,19 @@ def valid_jpeg():
 class AnalyzeConsentTests(unittest.TestCase):
     def setUp(self):
         app.config["TESTING"] = True
+        self.app_context = app.app_context()
+        self.app_context.push()
+        db.create_all()
         self.client = app.test_client()
         self._env_patch = patch.dict(os.environ, {API_KEY_ENV_VAR: TEST_API_KEY})
         self._env_patch.start()
         self.addCleanup(self._env_patch.stop)
         self.auth_headers = {API_KEY_HEADER: TEST_API_KEY}
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
 
     def test_analysis_requires_disclosure_acceptance(self):
         response = self.client.post(
@@ -79,7 +88,15 @@ class AnalyzeConsentTests(unittest.TestCase):
 class VetFinderTests(unittest.TestCase):
     def setUp(self):
         app.config["TESTING"] = True
+        self.app_context = app.app_context()
+        self.app_context.push()
+        db.create_all()
         self.client = app.test_client()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
 
     def test_vet_search_requires_valid_coordinates(self):
         response = self.client.get("/vets?lat=unknown&lng=-122")
