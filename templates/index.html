@@ -137,6 +137,13 @@
       .clinic-actions a { min-height: 46px; display: flex; align-items: center; justify-content: center; }
       .clinic-actions a:last-child { grid-column: 1 / -1; }
     }
+    .wellness-companion { position: fixed; right: 18px; bottom: 18px; z-index: 1200; font-family: inherit; }
+    .wellness-companion-card { width: min(290px, calc(100vw - 36px)); margin-bottom: 10px; padding: 16px; border-radius: 18px; background: #0e4539; border: 1px solid #68d5b5; color: #ecfdf5; box-shadow: 0 18px 50px rgba(0,0,0,.28); }
+    .wellness-companion-card[hidden] { display: none; }
+    .wellness-companion-card strong { font-size: 18px; }
+    .wellness-companion-card p { margin: 8px 0; font-size: 13px; line-height: 1.45; }
+    .wellness-companion-card small { color: #a7f3d0; }
+    .wellness-companion-toggle { width: 68px; height: 68px; float: right; border-radius: 50%; border: 3px solid #147d64; background: #d1fae5; font-size: 39px; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
   </style>
   <style>
     :root {
@@ -522,7 +529,23 @@
   </nav>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <div class="wellness-companion">
+    <section id="misoCompanion" class="wellness-companion-card" aria-label="Miso wellness companion" hidden>
+      <strong>Miso · Wellness Corgi</strong>
+      <p>I help you prepare clear observations and find appropriate veterinary care without pretending to diagnose your pet.</p>
+      <small>Safety first · urgent symptoms always go to a veterinarian.</small>
+    </section>
+    <button id="misoToggle" class="wellness-companion-toggle" type="button" aria-label="Open Miso wellness companion" aria-expanded="false">🐶</button>
+  </div>
+
   <script>
+    const misoToggle = document.getElementById("misoToggle");
+    const misoCompanion = document.getElementById("misoCompanion");
+    misoToggle.addEventListener("click", () => {
+      const willOpen = misoCompanion.hidden;
+      misoCompanion.hidden = !willOpen;
+      misoToggle.setAttribute("aria-expanded", String(willOpen));
+    });
     const disclosureVersion = "{{ disclosure_version }}";
     const apiKey = "{{ api_key }}";
     const screeningHistoryKey = "poopsense_screening_history_v1";
