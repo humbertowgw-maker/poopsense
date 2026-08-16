@@ -23,6 +23,11 @@ database_url = os.environ.get(
 )
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
+if database_url.startswith("postgresql://"):
+    # requirements.txt installs psycopg (v3), but SQLAlchemy's default
+    # dialect for a bare postgresql:// scheme is the legacy psycopg2,
+    # which isn't installed — be explicit about the driver.
+    database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
