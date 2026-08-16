@@ -8,7 +8,7 @@ database everything else already uses in production.
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0003_create_weekly_portfolio_metrics"
+revision = "0003_portfolio_metrics"
 down_revision = "0002_add_pet_type"
 branch_labels = None
 depends_on = None

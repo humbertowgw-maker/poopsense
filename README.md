@@ -156,7 +156,7 @@ production and broke in normal ways:
 - `/portfolio-metrics` reports only aggregate weekly counts
   (`completed_screenings`, `vet_searches`) from the `weekly_portfolio_metrics`
   table in the same Postgres database as everything else (migration
-  `0003_create_weekly_portfolio_metrics`) — no images, no location, no
+  `0003_portfolio_metrics`) — no images, no location, no
   per-user data retained, which is enforced by what the table schema does
   and doesn't store, not just a stated policy. This used to live in a
   separate local-only SQLite file that didn't survive Railway
