@@ -14,6 +14,11 @@ database_url = os.environ.get("DATABASE_URL")
 if database_url:
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
+    if database_url.startswith("postgresql://"):
+        # requirements.txt installs psycopg (v3), but SQLAlchemy's default
+        # dialect for a bare postgresql:// scheme is the legacy psycopg2,
+        # which isn't installed — be explicit about the driver.
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
     config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 target_metadata = db.metadata
