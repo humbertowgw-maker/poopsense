@@ -55,15 +55,13 @@ class AnalyzeConsentTests(unittest.TestCase):
         self.assertIn("The photo is not included automatically", page)
         self.assertIn("navigator.share", page)
 
-    def test_home_reuses_the_pass_tip_jar(self):
+    def test_home_has_its_own_tip_jar(self):
         response = self.client.get("/")
         page = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Settings & support", page)
-        self.assertIn("tip=brigade&amp;source=poopsense", page)
-        self.assertIn("utm_source=poopsense", page)
-        self.assertIn("utm_campaign=tip_jar", page)
+        self.assertIn("https://buy.stripe.com/00weVf3Tl1q847Pc2Q5EY02", page)
         self.assertIn("PoopSense does not receive or store your card details", page)
 
     @patch("app.analyze")
