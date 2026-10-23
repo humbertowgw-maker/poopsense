@@ -20,7 +20,7 @@ jiter==0.17.0
 markdown-it-py==4.2.0
 MarkupSafe==3.0.4
 mdurl==0.1.2
-pillow==12.3.0
+pillow==13.0.0
 pydantic==2.14.1
 pydantic_core==2.50.1
 psycopg[binary]==3.3.6
