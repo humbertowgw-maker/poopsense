@@ -2,7 +2,7 @@ annotated-types==0.8.0
 anthropic==0.120.2
 anyio==4.15.1
 blinker==1.9.0
-certifi==2026.7.22
+certifi==2026.10.23
 click==8.5.0
 distro==1.9.0
 docstring_parser==0.18.0
@@ -20,7 +20,7 @@ jiter==0.17.0
 markdown-it-py==4.2.0
 MarkupSafe==3.0.4
 mdurl==0.1.2
-pillow==12.3.0
+pillow==13.0.0
 pydantic==2.14.1
 pydantic_core==2.50.1
 psycopg[binary]==3.3.6
